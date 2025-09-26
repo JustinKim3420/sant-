@@ -1,10 +1,7 @@
-import { AppBar, Toolbar, Typography, Badge } from "@mui/material"
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { AppBar, Toolbar, Typography } from "@mui/material"
 import IconButton from '@mui/material/IconButton';
-import { useCartTotal } from "../context/cartTotal";
 
 const Header = () => {
-    const { cartTotal } = useCartTotal()
 
     return <>
         <AppBar position="fixed">
@@ -16,7 +13,7 @@ const Header = () => {
                     sx={{
                     }}
                 >
-                    <ShoppingCartIcon sx={{ color: "white" }} />
+                    {/* <ShoppingCartIcon sx={{ color: "white" }} /> */}
                     {/* <Badge badgeContent={cart.length} overlap="circular" color="secondary" sx={{ top: -8 }} /> */}
 
                 </IconButton>
