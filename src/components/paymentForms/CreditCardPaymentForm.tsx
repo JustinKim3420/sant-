@@ -14,6 +14,8 @@ const CreditCardPaymentForm = (props: CreditCardPaymentFormProps) => {
     const [amount, setAmount] = useState(0)
     const [cardNumber, setCardNumber] = useState("")
     const [cvv, setCvv] = useState("")
+    const paymentContext = new PaymentContext()
+
     return <Box
         sx={{
             display: 'flex',
@@ -45,6 +47,7 @@ const CreditCardPaymentForm = (props: CreditCardPaymentFormProps) => {
             }}
         />
         <Button
+            variant="outlined"
             onClick={() => {
                 const payment = createPayment({
                     type: 'creditCard',
@@ -53,7 +56,7 @@ const CreditCardPaymentForm = (props: CreditCardPaymentFormProps) => {
                 })
                 const command = new AddPaymentCommand(payment, amount)
                 commandExecuter.execute(command)
-                setPayments(PaymentContext.getPayments())
+                setPayments(paymentContext.getPayments())
             }}
         >
             Add payment

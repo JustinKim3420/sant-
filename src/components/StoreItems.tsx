@@ -12,6 +12,7 @@ type StoreItemsProps = {
 
 const StoreItems = (props: StoreItemsProps) => {
     const products = Product.getAll()
+    const cart = new Cart()
     const { setCart, commandExecuter } = props
     return <>
         <Box
@@ -30,7 +31,7 @@ const StoreItems = (props: StoreItemsProps) => {
                     }}
                     onClick={() => {
                         commandExecuter.undo()
-                        setCart(Cart.getAllItems())
+                        setCart(cart.getAllItems())
                     }}
                 >
                     Undo action
@@ -39,7 +40,7 @@ const StoreItems = (props: StoreItemsProps) => {
                     variant='outlined'
                     onClick={() => {
                         commandExecuter.redo()
-                        setCart(Cart.getAllItems())
+                        setCart(cart.getAllItems())
                     }}
                 >
                     Redo action
@@ -74,7 +75,7 @@ const StoreItems = (props: StoreItemsProps) => {
                             <Button onClick={() => {
                                 const addCommand = new AddProductToCartCommand(product)
                                 commandExecuter.execute(addCommand)
-                                setCart(Cart.getAllItems())
+                                setCart(cart.getAllItems())
                             }}>
                                 Add to cart
                             </Button>

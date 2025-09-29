@@ -1,6 +1,8 @@
 import { Box, Button, MenuItem, Modal, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { PaymentConfig, PaymentContext, PaymentOptions } from "../clients/payment";
+import { CommandExecuter } from "../commands/executer";
+import { RemovePaymentCommand } from "../commands/paymentCommands";
 import PaymentForm from "./paymentForms/PaymentForm";
 
 const style = {
@@ -18,14 +20,14 @@ const style = {
 const PaymentModal = () => {
     const [open, setOpen] = useState(false)
     const [selectedPaymentType, setSelectedPaymentType] = useState<keyof typeof PaymentOptions>('Credit card')
-    const [payments, setPayments] = useState(PaymentContext.getPayments())
-
+    const paymentsContext = new PaymentContext()
+    const [payments, setPayments] = useState(paymentsContext.getPayments())
+    const commandExecuter = useRef(new CommandExecuter())
     const paymentTable = <TableContainer>
         <Table>
             <TableHead>
                 <TableRow>
-                    <TableCell />
-                    <TableCell>Payment Type</TableCell>
+                    <TableCell align="right">Payment Type</TableCell>
                     <TableCell align="right">Amount</TableCell>
                 </TableRow>
             </TableHead>
@@ -33,8 +35,19 @@ const PaymentModal = () => {
                 {
                     payments.map((payment) => {
                         return <TableRow key={payment.id}>
-                            <TableRow>{payment.payment.getPaymentType()}</TableRow>
-                            <TableRow>{payment.amount}</TableRow>
+                            <TableCell align="right">{payment.payment.paymentType}</TableCell>
+                            <TableCell align="right">{payment.amount}</TableCell>
+                            <TableCell align="right">
+                                <Button
+                                    onClick={() => {
+                                        const command = new RemovePaymentCommand(payment.id)
+                                        commandExecuter.current.execute(command)
+                                        setPayments(paymentsContext.getPayments())
+                                    }}
+                                >
+                                    Remove
+                                </Button>
+                            </TableCell>
                         </TableRow>
                     })
                 }
@@ -55,6 +68,9 @@ const PaymentModal = () => {
         </Button>
         <Modal
             open={open}
+            onClose={() => {
+                setOpen(false)
+            }}
         >
             <Box
                 sx={{
@@ -83,7 +99,34 @@ const PaymentModal = () => {
                 <PaymentForm
                     paymentType={selectedPaymentType}
                     setPayments={setPayments}
+                    commandExecuter={commandExecuter.current}
                 />
+                <Button
+                    variant='outlined'
+                    onClick={() => {
+                        commandExecuter.current.undo()
+                        setPayments(paymentsContext.getPayments())
+                    }}
+                >
+                    Undo
+                </Button>
+                <Button
+                    variant='outlined'
+                    onClick={() => {
+                        commandExecuter.current.redo()
+                        setPayments(paymentsContext.getPayments())
+                    }}
+                >
+                    Redo
+                </Button>
+                <Button
+                    variant='outlined'
+                    onClick={() => {
+                        paymentsContext.submitPayments()
+                    }}
+                >
+                    Submit all payments
+                </Button>
             </Box>
         </Modal>
     </>

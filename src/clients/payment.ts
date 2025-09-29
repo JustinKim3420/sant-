@@ -1,5 +1,8 @@
 // Should implement a transaction type system
 
+import { Console } from "console"
+import Decimal from "decimal.js"
+import { Cart } from "./cart"
 import LocalStorage from "./localStorageClient"
 
 export enum PaymentOptions {
@@ -11,8 +14,9 @@ export enum PaymentOptions {
 
 // If any single payment fails, all payments be rescinded 
 export abstract class Payment {
+    public paymentType!: keyof typeof PaymentOptions
     abstract makePayment(amount: number): void
-    abstract getPaymentType(): PaymentOptions
+
 }
 
 export type PaymentConfig =
@@ -43,6 +47,7 @@ export const createPayment = <T extends PaymentConfig["type"]>(
 class CreditCardPayment extends Payment {
     private cardNumber: string
     private cvv: string
+    public paymentType = 'Credit card' as keyof typeof PaymentOptions
     constructor(cardNumber: string, cvv: string) {
         super()
         this.cardNumber = cardNumber
@@ -51,13 +56,11 @@ class CreditCardPayment extends Payment {
     makePayment(amount: number) {
         console.log('Payment made to card number:', this.cardNumber)
     }
-    getPaymentType() {
-        return PaymentOptions["Credit card"]
-    }
 }
 
 class GiftCardPayment extends Payment {
     serialNumber: string
+    public paymentType = 'Gift card' as keyof typeof PaymentOptions
     constructor(serialNumber: string) {
         super()
         this.serialNumber = serialNumber
@@ -65,36 +68,28 @@ class GiftCardPayment extends Payment {
     makePayment(amount: number) {
         console.log('Payment made using gift card with UID:', this.serialNumber)
     }
-
-    getPaymentType() {
-        return PaymentOptions["Gift card"]
-    }
 }
 
 class CashPayment extends Payment {
+    public paymentType = 'Cash' as keyof typeof PaymentOptions
+
     constructor() {
         super()
     }
     makePayment(amount: number) {
         console.log('Payment using cash of amount:', amount)
     }
-
-    getPaymentType() {
-        return PaymentOptions["Cash"]
-    }
 }
 
 class KlarnaPayment extends Payment {
     accountId: string
+    public paymentType = 'Klarna' as keyof typeof PaymentOptions
     constructor(accountId: string) {
         super()
         this.accountId = accountId
     }
     makePayment(amount: number) {
         console.log('Payment using Klarna:', amount)
-    }
-    getPaymentType() {
-        return PaymentOptions["Klarna"]
     }
 }
 
@@ -106,39 +101,38 @@ export type StoredPayment = {
 
 export class PaymentContext {
     static readonly LOCAL_STORAGE_KEY = 'payments'
-    private static isInitialized = false
-    private static _initializePayments() {
+
+    constructor() {
+        this._initializePayments()
+    }
+
+    private _initializePayments() {
         LocalStorage.createIfNotExist(PaymentContext.LOCAL_STORAGE_KEY, [])
-        PaymentContext.isInitialized = true
     }
     private static generatePaymentId() {
         return Date.now().toString()
     }
-    static getPayments() {
-        if (!PaymentContext.isInitialized) {
-            PaymentContext._initializePayments()
-        }
+    getPayments() {
         const data = LocalStorage.get(PaymentContext.LOCAL_STORAGE_KEY) as StoredPayment[]
         return data
     }
-    static readdPayment(payment: StoredPayment) {
-        const existingPayments = PaymentContext.getPayments()
+    readdPayment(payment: StoredPayment) {
+        const existingPayments = this.getPayments()
         LocalStorage.create(PaymentContext.LOCAL_STORAGE_KEY, [...existingPayments, payment])
     }
-    static addPayment(payment: Payment, amount: number): StoredPayment {
-        const existingPayments = PaymentContext.getPayments()
+    addPayment(payment: Payment, amount: number): StoredPayment {
+        const existingPayments = this.getPayments()
         const paymentId = PaymentContext.generatePaymentId()
         const newPayment = {
             id: paymentId,
             amount,
             payment
         }
-        console.log('---newPayment', payment)
         LocalStorage.create(PaymentContext.LOCAL_STORAGE_KEY, [...existingPayments, newPayment])
         return newPayment
     }
-    static removePayment(paymentId: string) {
-        const existingPayments = PaymentContext.getPayments()
+    removePayment(paymentId: string) {
+        const existingPayments = this.getPayments()
         let removedPayment: StoredPayment | null = null
         const newPayments = existingPayments.filter(payment => {
             const isRemovedPayment = payment.id === paymentId
@@ -147,7 +141,25 @@ export class PaymentContext {
             }
             return !isRemovedPayment
         })
-        LocalStorage.create(this.LOCAL_STORAGE_KEY, newPayments)
+        LocalStorage.create(PaymentContext.LOCAL_STORAGE_KEY, newPayments)
         return removedPayment
+    }
+    // Implement never throw or something to properly hanle all errors
+    submitPayments() {
+        const cart = new Cart()
+        const cartTotal = new Decimal(cart.getCartTotal())
+        const payments = this.getPayments()
+        const paymentTotal = payments.reduce((acc, cur) => {
+            return acc.plus(cur.amount)
+        }, new Decimal(0))
+
+        const amountOwed = cartTotal.minus(paymentTotal).toNumber()
+        if (amountOwed === 0) {
+            console.log('PAYMENT SUCCESSFUL')
+        } else if (amountOwed > 0) {
+            console.log('You need to add additional payments')
+        } else {
+            console.log('Update previous payments to get the exact total')
+        }
     }
 }

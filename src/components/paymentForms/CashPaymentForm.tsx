@@ -11,6 +11,7 @@ type CashPaymentFormProps = {
 
 const CashPaymentForm = (props: CashPaymentFormProps) => {
     const [amount, setAmount] = useState(0)
+    const paymentContext = new PaymentContext()
     const { commandExecuter, setPayments } = props
     return <Box
         sx={{
@@ -29,13 +30,14 @@ const CashPaymentForm = (props: CashPaymentFormProps) => {
             }}
         />
         <Button
+            variant="outlined"
             onClick={() => {
                 const payment = createPayment({
                     type: 'cash'
                 })
                 const command = new AddPaymentCommand(payment, amount)
                 commandExecuter.execute(command)
-                setPayments(PaymentContext.getPayments())
+                setPayments(paymentContext.getPayments())
             }}
         >
             Add payment

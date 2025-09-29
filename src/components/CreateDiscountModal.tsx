@@ -31,6 +31,7 @@ const CreateDiscountModal = (props: CreateDiscountModalProps) => {
     const { selectedIds, commandExecuter, setDiscounts } = props
     const [discountName, setDiscountName] = useState<string | null>(DEFAULT_DISCOUNT_NAME)
     const [discountAmount, setDiscountAmount] = useState<number>(DEFAULT_DISCOUNT_PERCENTAGE_AMOUNT)
+    const discount = new Discount()
     const handleDismmiss = () => {
         setOpenModal(false)
         setDiscountName(DEFAULT_DISCOUNT_NAME)
@@ -70,7 +71,7 @@ const CreateDiscountModal = (props: CreateDiscountModalProps) => {
                         if (!discountName) { return }
                         const command = new AddItemDiscountCommand(discountName, discountAmount, selectedIds)
                         commandExecuter.execute(command)
-                        setDiscounts(Discount.get())
+                        setDiscounts(discount.get())
                         handleDismmiss()
                     }}
                     disabled={discountAmount === DEFAULT_DISCOUNT_PERCENTAGE_AMOUNT || discountName === DEFAULT_DISCOUNT_NAME}

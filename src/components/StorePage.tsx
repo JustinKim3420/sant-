@@ -10,8 +10,10 @@ import StoreItems from "./StoreItems"
 
 const StorePage = () => {
     const products = Product.getAll()
-    const [cart, setCart] = useState<CartItemType[]>(() => Cart.getAllItems())
-    const [discounts, setDiscounts] = useState<DiscountType[]>(() => Discount.get())
+    const cartClass = new Cart()
+    const discountClass = new Discount()
+    const [cart, setCart] = useState<CartItemType[]>(() => cartClass.getAllItems())
+    const [discounts, setDiscounts] = useState<DiscountType[]>(() => discountClass.get())
     const commandExecuter = useRef(new CommandExecuter())
     return <Box>
         <PageHeader title={`${products.length} Products`} />

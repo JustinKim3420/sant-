@@ -13,6 +13,7 @@ const KlarnaPaymentForm = (props: KlarnaPaymentFormProps) => {
     const [amount, setAmount] = useState(0)
     const [accountId, setAccountId] = useState("")
     const { commandExecuter, setPayments } = props
+    const paymentContext = new PaymentContext()
     return <Box
 
         sx={{
@@ -39,6 +40,7 @@ const KlarnaPaymentForm = (props: KlarnaPaymentFormProps) => {
             }}
         />
         <Button
+            variant="outlined"
             onClick={() => {
                 const payment = createPayment({
                     type: 'klarna',
@@ -46,7 +48,7 @@ const KlarnaPaymentForm = (props: KlarnaPaymentFormProps) => {
                 })
                 const command = new AddPaymentCommand(payment, amount)
                 commandExecuter.execute(command)
-                setPayments(PaymentContext.getPayments())
+                setPayments(paymentContext.getPayments())
             }}
         >
             Add payment

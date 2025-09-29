@@ -10,12 +10,12 @@ import KlarnaPaymentForm from "./KlarnaPaymentForm";
 type PaymentFormProps = {
     paymentType: keyof typeof PaymentOptions
     setPayments: Dispatch<SetStateAction<StoredPayment[]>>
+    commandExecuter: CommandExecuter
 }
 
 
 const PaymentForm = (props: PaymentFormProps) => {
-    const { paymentType, setPayments } = props
-    const commandExecuter = new CommandExecuter()
+    const { paymentType, setPayments, commandExecuter } = props
     const paymentFormMap: Record<keyof typeof PaymentOptions, ReactElement> = {
         'Credit card': <CreditCardPaymentForm commandExecuter={commandExecuter} setPayments={setPayments} />,
         'Gift card': <GiftCardPaymentForm commandExecuter={commandExecuter} setPayments={setPayments} />,

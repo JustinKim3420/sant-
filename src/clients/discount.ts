@@ -12,18 +12,25 @@ export type DiscountType = {
 export class Discount {
     static readonly LOCAL_STORAGE_KEY = 'discount'
 
-    static get(): DiscountType[] {
+    constructor() {
+        this.initializeDiscounts()
+    }
+    initializeDiscounts() {
+        LocalStorage.createIfNotExist(Discount.LOCAL_STORAGE_KEY, [])
+    }
+
+    get(): DiscountType[] {
         return LocalStorage.get(Discount.LOCAL_STORAGE_KEY) as DiscountType[]
     }
 
-    static getDiscountsForProduct(productId: string): DiscountType[] {
-        const discounts = Discount.get()
+    getDiscountsForProduct(productId: string): DiscountType[] {
+        const discounts = this.get()
         const applicableDiscounts = discounts.filter(discount => discount.appliedProductIds.includes(productId))
         return applicableDiscounts
     }
 
-    static applyDiscountsToProduct(productId: string, productTotal: number) {
-        const applicableDiscounts = Discount.getDiscountsForProduct(productId)
+    applyDiscountsToProduct(productId: string, productTotal: number) {
+        const applicableDiscounts = this.getDiscountsForProduct(productId)
         let discountedTotal = new Decimal(productTotal)
         let cumulativeDiscountPercentage = applicableDiscounts.reduce((acc, cur) => {
             return acc + cur.percentAmount
@@ -37,8 +44,8 @@ export class Discount {
         return discountedTotal.mul(discountPercent).toDecimalPlaces(2).toNumber()
     }
 
-    static addProductToDiscount(discountId: string, productId: string): DiscountType | null {
-        const discounts = Discount.get()
+    addProductToDiscount(discountId: string, productId: string): DiscountType | null {
+        const discounts = this.get()
         let updatedDiscount: DiscountType | null = null
         const newDiscountsList = discounts.reduce((acc, current) => {
             if (current.id === discountId) {
@@ -57,8 +64,8 @@ export class Discount {
     }
     // Need to add logic to dictate wether or not the discount should be allowed/ duplicated
     // private _validateDiscount() { }
-    static addItemGroupDiscount(discountName: string, discountPercentAmount: number, productIds: string[]) {
-        const discounts = Discount.get()
+    addItemGroupDiscount(discountName: string, discountPercentAmount: number, productIds: string[]) {
+        const discounts = this.get()
         const newDiscount: DiscountType = {
             id: Date.now().toString(), // should move logic to localstorage and needs better logic
             name: discountName,
@@ -69,8 +76,8 @@ export class Discount {
         return newDiscount
     }
 
-    static addItemDiscount(discountName: string, discountPercentAmount: number, productId: string): DiscountType {
-        const discounts = Discount.get()
+    addItemDiscount(discountName: string, discountPercentAmount: number, productId: string): DiscountType {
+        const discounts = this.get()
         const newDiscount: DiscountType = {
             id: Date.now().toString(), // should move logic to localstorage and needs better logic
             name: discountName,
@@ -81,8 +88,8 @@ export class Discount {
         return newDiscount
 
     }
-    static removeDiscount(discountId: string): DiscountType | null {
-        const discounts = Discount.get()
+    removeDiscount(discountId: string): DiscountType | null {
+        const discounts = this.get()
         let removedDiscount: DiscountType | null = null
         const newDiscountsList = discounts.reduce((acc, current) => {
             if (current.id === discountId) {
@@ -95,8 +102,8 @@ export class Discount {
         LocalStorage.create(Discount.LOCAL_STORAGE_KEY, newDiscountsList)
         return removedDiscount
     }
-    static removeItemDiscount(discountId: string, productId: string): DiscountType | null {
-        const discounts = Discount.get()
+    removeItemDiscount(discountId: string, productId: string): DiscountType | null {
+        const discounts = this.get()
         let updatedDiscount: DiscountType | null = null
         const newDiscountsList = discounts.reduce((acc, current) => {
             if (current.id === discountId) {

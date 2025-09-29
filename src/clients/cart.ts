@@ -9,54 +9,52 @@ export type CartItemType = (ProductType & { quantity: number })
 export class Cart {
     static readonly LOCAL_STORAGE_KEY = 'cart'
     private static readonly SALES_TAX = 8.75
-    private static cart: Cart
-    private static initializeCart() {
+    private initializeCart() {
         LocalStorage.createIfNotExist(Cart.LOCAL_STORAGE_KEY, [])
+    }
+    constructor() {
+        this.initializeCart()
     }
     public static getSalesTax() {
         return Cart.SALES_TAX
     }
 
-    static getAllItems(): CartItemType[] {
-        const existingData = LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
-        if (!existingData) {
-            Cart.initializeCart()
-        }
+    getAllItems(): CartItemType[] {
         return LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
     }
 
-    static getTotal(): number {
-        const existingCart = Cart.getAllItems()
+    getTotal(): number {
+        const existingCart = this.getAllItems()
         return existingCart.reduce((acc, cur) => {
             const sellingPriceDecimal = new Decimal(cur.sellingPrice)
             return acc.add(sellingPriceDecimal.mul(cur.quantity))
         }, new Decimal(0)).toDecimalPlaces(2).toNumber()
     }
 
-    static getProductTotal(productId: string): number {
-        const existingCart = Cart.getAllItems()
+    getProductTotal(productId: string): number {
+        const discount = new Discount()
+        const existingCart = this.getAllItems()
         const product = existingCart.find(item => item.id === productId)
         if (!product) { return 0 }
         const total = new Decimal(product.quantity).mul(product.sellingPrice).toDecimalPlaces(2).toNumber()
-        return Discount.applyDiscountsToProduct(productId, total)
+        return discount.applyDiscountsToProduct(productId, total)
     }
     private static _applySalesTax(total: number): number {
-        const SALES_TAX_PERCENTAGE = 8.75
         const totalDecimal = new Decimal(total)
-        const percentage = new Decimal(100).add(SALES_TAX_PERCENTAGE)
+        const percentage = new Decimal(100).add(Cart.SALES_TAX)
         return totalDecimal.mul(percentage).div(100).toDecimalPlaces(2).toNumber()
     }
-    static getCartTotal(): number {
-        const existingCart = Cart.getAllItems()
+    getCartTotal(): number {
+        const existingCart = this.getAllItems()
         const discountedTotal = existingCart.reduce((acc, cur) => {
-            const productTotal = Cart.getProductTotal(cur.id)
+            const productTotal = this.getProductTotal(cur.id)
             return acc + productTotal
         }, 0)
         return Cart._applySalesTax(discountedTotal)
     }
 
-    static addProduct(product: ProductType): ProductType {
-        const existingCart = Cart.getAllItems()
+    addProduct(product: ProductType): ProductType {
+        const existingCart = this.getAllItems()
         let didAddProductToCart = false
         let addedProduct: ProductType | null = null
         const newProductsList = existingCart.reduce((acc, current) => {
@@ -83,8 +81,8 @@ export class Cart {
         LocalStorage.create(Cart.LOCAL_STORAGE_KEY, newProductsList)
         return addedProduct
     }
-    static removeProduct(productId: string): ProductType | null {
-        const existingCart = Cart.getAllItems()
+    removeProduct(productId: string): ProductType | null {
+        const existingCart = this.getAllItems()
         let removedProduct: ProductType | null = null
         const newProductsList = existingCart.reduce((acc, current) => {
             let newProductinfo = current

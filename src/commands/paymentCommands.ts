@@ -5,16 +5,18 @@ export class AddPaymentCommand implements Command {
     payment: Payment
     amount: number
     addedPayment: StoredPayment | null = null
+    paymentContext: PaymentContext
     constructor(payment: Payment, amount: number) {
         this.payment = payment
         this.amount = amount
+        this.paymentContext = new PaymentContext()
     }
     execute() {
-        this.addedPayment = PaymentContext.addPayment(this.payment, this.amount)
+        this.addedPayment = this.paymentContext.addPayment(this.payment, this.amount)
     }
     undo() {
         if (!this.addedPayment) { return }
-        PaymentContext.removePayment(this.addedPayment.id)
+        this.paymentContext.removePayment(this.addedPayment.id)
         this.addedPayment = null
     }
     clone() {
@@ -24,15 +26,17 @@ export class AddPaymentCommand implements Command {
 export class RemovePaymentCommand implements Command {
     paymentId: string
     removedPayment: StoredPayment | null = null
+    paymentContext: PaymentContext
     constructor(paymentId: string) {
         this.paymentId = paymentId
+        this.paymentContext = new PaymentContext()
     }
     execute() {
-        this.removedPayment = PaymentContext.removePayment(this.paymentId)
+        this.removedPayment = this.paymentContext.removePayment(this.paymentId)
     }
     undo() {
         if (!this.removedPayment) { return }
-        PaymentContext.readdPayment(this.removedPayment)
+        this.paymentContext.readdPayment(this.removedPayment)
         this.removedPayment = null
     }
     clone() {

@@ -15,6 +15,8 @@ type ShoppingCartProps = {
 
 const ShoppingCart = (props: ShoppingCartProps) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([])
+    const cartClass = new Cart()
+    const discountClass = new Discount()
     const { cart, commandExecuter, setDiscounts } = props
 
     return <Box
@@ -69,18 +71,18 @@ const ShoppingCart = (props: ShoppingCartProps) => {
                                 {item.name}
                             </TableCell>
                             <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">{Discount.getDiscountsForProduct(item.id).map(discount => {
+                            <TableCell align="right">{discountClass.getDiscountsForProduct(item.id).map(discount => {
                                 return <Chip
                                     key={discount.id}
                                     label={`${discount.name} - ${discount.percentAmount}%`}
                                     onDelete={() => {
                                         const command = new RemoveDiscountFromItemCommand(discount.id, item.id)
                                         commandExecuter.execute(command)
-                                        setDiscounts(Discount.get())
+                                        setDiscounts(discountClass.get())
                                     }}
                                 />
                             })}</TableCell>
-                            <TableCell align="right">{Cart.getProductTotal(item.id)}</TableCell>
+                            <TableCell align="right">{cartClass.getProductTotal(item.id)}</TableCell>
                         </TableRow>
                     ))}
                     <TableRow>
@@ -95,7 +97,7 @@ const ShoppingCart = (props: ShoppingCartProps) => {
                         <TableCell></TableCell>
                         <TableCell></TableCell>
                         <TableCell></TableCell>
-                        <TableCell align="right">{Cart.getCartTotal()}</TableCell>
+                        <TableCell align="right">{cartClass.getCartTotal()}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>

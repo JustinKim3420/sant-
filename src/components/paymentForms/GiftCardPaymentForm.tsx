@@ -13,6 +13,8 @@ const GiftCardPaymentForm = (props: GiftCardPaymentFormProps) => {
     const [amount, setAmount] = useState(0)
     const [serialNumber, setSerialNumber] = useState("")
     const { commandExecuter, setPayments } = props
+    const paymentContext = new PaymentContext()
+
     return <Box
         sx={{
             display: 'flex',
@@ -38,6 +40,7 @@ const GiftCardPaymentForm = (props: GiftCardPaymentFormProps) => {
             }}
         />
         <Button
+            variant="outlined"
             onClick={() => {
                 const payment = createPayment({
                     type: 'giftCard',
@@ -45,7 +48,7 @@ const GiftCardPaymentForm = (props: GiftCardPaymentFormProps) => {
                 })
                 const command = new AddPaymentCommand(payment, amount)
                 commandExecuter.execute(command)
-                setPayments(PaymentContext.getPayments())
+                setPayments(paymentContext.getPayments())
             }}
         >
             Add payment
