@@ -1,39 +1,64 @@
 
 import LocalStorage from "./localStorageClient";
 import { ProductType } from "./product";
+import { Decimal } from 'decimal.js';
+import { Discount } from "./discount";
 
 export type CartItemType = (ProductType & { quantity: number })
 
 export class Cart {
     static readonly LOCAL_STORAGE_KEY = 'cart'
+    private static readonly SALES_TAX = 8.75
     private static cart: Cart
-    private initializeCart() {
+    private static initializeCart() {
         LocalStorage.createIfNotExist(Cart.LOCAL_STORAGE_KEY, [])
     }
-
-    private constructor() {
-        this.initializeCart()
+    public static getSalesTax() {
+        return Cart.SALES_TAX
     }
 
-    public static getInstance(): Cart {
-        if (Cart.cart == null) {
-            Cart.cart = new Cart()
+    static getAllItems(): CartItemType[] {
+        const existingData = LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
+        if (!existingData) {
+            Cart.initializeCart()
         }
-        return Cart.cart
-    }
-
-    static get(): CartItemType[] {
         return LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
     }
 
     static getTotal(): number {
-        const existingCart = LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
-        return Math.floor(existingCart.reduce((acc, cur) => { return acc + (cur.quantity * cur.sellingPrice) }, 0) * 100) / 100
+        const existingCart = Cart.getAllItems()
+        return existingCart.reduce((acc, cur) => {
+            const sellingPriceDecimal = new Decimal(cur.sellingPrice)
+            return acc.add(sellingPriceDecimal.mul(cur.quantity))
+        }, new Decimal(0)).toDecimalPlaces(2).toNumber()
     }
 
-    addProduct(product: ProductType) {
-        const existingCart = LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
+    static getProductTotal(productId: string): number {
+        const existingCart = Cart.getAllItems()
+        const product = existingCart.find(item => item.id === productId)
+        if (!product) { return 0 }
+        const total = new Decimal(product.quantity).mul(product.sellingPrice).toDecimalPlaces(2).toNumber()
+        return Discount.applyDiscountsToProduct(productId, total)
+    }
+    private static _applySalesTax(total: number): number {
+        const SALES_TAX_PERCENTAGE = 8.75
+        const totalDecimal = new Decimal(total)
+        const percentage = new Decimal(100).add(SALES_TAX_PERCENTAGE)
+        return totalDecimal.mul(percentage).div(100).toDecimalPlaces(2).toNumber()
+    }
+    static getCartTotal(): number {
+        const existingCart = Cart.getAllItems()
+        const discountedTotal = existingCart.reduce((acc, cur) => {
+            const productTotal = Cart.getProductTotal(cur.id)
+            return acc + productTotal
+        }, 0)
+        return Cart._applySalesTax(discountedTotal)
+    }
+
+    static addProduct(product: ProductType): ProductType {
+        const existingCart = Cart.getAllItems()
         let didAddProductToCart = false
+        let addedProduct: ProductType | null = null
         const newProductsList = existingCart.reduce((acc, current) => {
             let currentProduct = current
             if (current.id === product.id) {
@@ -42,21 +67,24 @@ export class Cart {
                     quantity: current.quantity + 1
                 }
                 didAddProductToCart = true
+                addedProduct = currentProduct
             }
             return [...acc, currentProduct]
         }, [] as CartItemType[])
         if (!didAddProductToCart) {
-            newProductsList.push({
+            const newProductInfo = {
                 ...product,
                 quantity: 1
-            })
+            }
+            newProductsList.push(newProductInfo)
+            addedProduct = newProductInfo
         }
+        if (!addedProduct) { throw new Error('Logical error occurred') }
         LocalStorage.create(Cart.LOCAL_STORAGE_KEY, newProductsList)
-        console.log('---after addproduct', LocalStorage.get(Cart.LOCAL_STORAGE_KEY))
-
+        return addedProduct
     }
-    removeProduct(productId: string): ProductType | null {
-        const existingCart = LocalStorage.get(Cart.LOCAL_STORAGE_KEY) as CartItemType[]
+    static removeProduct(productId: string): ProductType | null {
+        const existingCart = Cart.getAllItems()
         let removedProduct: ProductType | null = null
         const newProductsList = existingCart.reduce((acc, current) => {
             let newProductinfo = current
@@ -75,7 +103,6 @@ export class Cart {
         }, [] as CartItemType[])
 
         LocalStorage.create(Cart.LOCAL_STORAGE_KEY, newProductsList)
-        console.log('---after removeProduct', LocalStorage.get(Cart.LOCAL_STORAGE_KEY))
         return removedProduct
     }
 }

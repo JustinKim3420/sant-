@@ -1,4 +1,5 @@
 
+import Decimal from "decimal.js";
 import LocalStorage from "./localStorageClient";
 
 export type DiscountType = {
@@ -10,56 +11,80 @@ export type DiscountType = {
 
 export class Discount {
     static readonly LOCAL_STORAGE_KEY = 'discount'
-    static discount: Discount
-    private initializeDiscount() {
-        LocalStorage.createIfNotExist(Discount.LOCAL_STORAGE_KEY, [])
-    }
-
-    private constructor() {
-        this.initializeDiscount()
-    }
-
-    public static getInstance(): Discount {
-        if (Discount.discount == null) {
-            Discount.discount = new Discount()
-        }
-        return Discount.discount
-    }
 
     static get(): DiscountType[] {
         return LocalStorage.get(Discount.LOCAL_STORAGE_KEY) as DiscountType[]
     }
+
+    static getDiscountsForProduct(productId: string): DiscountType[] {
+        const discounts = Discount.get()
+        const applicableDiscounts = discounts.filter(discount => discount.appliedProductIds.includes(productId))
+        return applicableDiscounts
+    }
+
+    static applyDiscountsToProduct(productId: string, productTotal: number) {
+        const applicableDiscounts = Discount.getDiscountsForProduct(productId)
+        let discountedTotal = new Decimal(productTotal)
+        let cumulativeDiscountPercentage = applicableDiscounts.reduce((acc, cur) => {
+            return acc + cur.percentAmount
+        }, 0)
+        if (cumulativeDiscountPercentage > 100) {
+            cumulativeDiscountPercentage = 100
+        } else if (cumulativeDiscountPercentage < 0) {
+            cumulativeDiscountPercentage = 0
+        }
+        const discountPercent = new Decimal(100).minus(cumulativeDiscountPercentage).div(100)
+        return discountedTotal.mul(discountPercent).toDecimalPlaces(2).toNumber()
+    }
+
+    static addProductToDiscount(discountId: string, productId: string): DiscountType | null {
+        const discounts = Discount.get()
+        let updatedDiscount: DiscountType | null = null
+        const newDiscountsList = discounts.reduce((acc, current) => {
+            if (current.id === discountId) {
+                const newDiscount: DiscountType = {
+                    ...current,
+                    appliedProductIds: [...current.appliedProductIds, productId]
+                }
+                updatedDiscount = newDiscount
+                return [...acc, newDiscount]
+            }
+            return [...acc, current]
+        }, [] as DiscountType[])
+
+        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, newDiscountsList)
+        return updatedDiscount
+    }
     // Need to add logic to dictate wether or not the discount should be allowed/ duplicated
     // private _validateDiscount() { }
-    addItemGroupDiscount(discountName: string, discountPercentAmount: number, productIds: string[]) {
-        const existingCart = LocalStorage.get(Discount.LOCAL_STORAGE_KEY) as DiscountType[]
+    static addItemGroupDiscount(discountName: string, discountPercentAmount: number, productIds: string[]) {
+        const discounts = Discount.get()
         const newDiscount: DiscountType = {
             id: Date.now().toString(), // should move logic to localstorage and needs better logic
             name: discountName,
             percentAmount: discountPercentAmount,
             appliedProductIds: productIds
         }
-        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, [...existingCart, newDiscount])
+        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, [...discounts, newDiscount])
         return newDiscount
     }
 
-    addItemDiscount(discountName: string, discountPercentAmount: number, productId: string): DiscountType {
-        const existingCart = LocalStorage.get(Discount.LOCAL_STORAGE_KEY) as DiscountType[]
+    static addItemDiscount(discountName: string, discountPercentAmount: number, productId: string): DiscountType {
+        const discounts = Discount.get()
         const newDiscount: DiscountType = {
             id: Date.now().toString(), // should move logic to localstorage and needs better logic
             name: discountName,
             percentAmount: discountPercentAmount,
             appliedProductIds: [productId]
         }
-        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, [...existingCart, newDiscount])
+        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, [...discounts, newDiscount])
         return newDiscount
 
     }
-    // Need to introduce logic to remove discounts specific to the selected products
-    removeDiscount(discountId: string): DiscountType | null {
-        const existingCart = LocalStorage.get(Discount.LOCAL_STORAGE_KEY) as DiscountType[]
+    static removeDiscount(discountId: string): DiscountType | null {
+        const discounts = Discount.get()
         let removedDiscount: DiscountType | null = null
-        const newProductsList = existingCart.reduce((acc, current) => {
+        const newDiscountsList = discounts.reduce((acc, current) => {
             if (current.id === discountId) {
                 removedDiscount = current
                 return acc
@@ -67,7 +92,25 @@ export class Discount {
             return [...acc, current]
         }, [] as DiscountType[])
 
-        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, newProductsList)
+        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, newDiscountsList)
         return removedDiscount
+    }
+    static removeItemDiscount(discountId: string, productId: string): DiscountType | null {
+        const discounts = Discount.get()
+        let updatedDiscount: DiscountType | null = null
+        const newDiscountsList = discounts.reduce((acc, current) => {
+            if (current.id === discountId) {
+                const newDiscount: DiscountType = {
+                    ...current,
+                    appliedProductIds: current.appliedProductIds.filter(id => id !== productId)
+                }
+                updatedDiscount = newDiscount
+                return [...acc, newDiscount]
+            }
+            return [...acc, current]
+        }, [] as DiscountType[])
+
+        LocalStorage.create(Discount.LOCAL_STORAGE_KEY, newDiscountsList)
+        return updatedDiscount
     }
 }

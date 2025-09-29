@@ -38,14 +38,14 @@ export class Product {
     static readonly LOCAL_STORAGE_KEY = 'products'
     private static isInitialized = false
 
-    static initializeProductList() {
+    private static _initializeProductList() {
         LocalStorage.createIfNotExist(Product.LOCAL_STORAGE_KEY, STATIC_PRODUCTS_DATA)
         Product.isInitialized = true
     }
 
     static getAll() {
         if (!this.isInitialized) {
-            this.initializeProductList()
+            Product._initializeProductList()
         }
         return LocalStorage.get(this.LOCAL_STORAGE_KEY) as ProductType[]
     }

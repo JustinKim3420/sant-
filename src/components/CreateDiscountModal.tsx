@@ -37,7 +37,7 @@ const CreateDiscountModal = (props: CreateDiscountModalProps) => {
         setDiscountAmount(DEFAULT_DISCOUNT_PERCENTAGE_AMOUNT)
     }
     return <>
-        <Button onClick={() => { setOpenModal(true) }}>Create discount for items</Button>
+        <Button disabled={selectedIds.length === 0} onClick={() => { setOpenModal(true) }}>Create discount for items</Button>
         <Modal
             open={openModal}
             onClose={() => { handleDismmiss() }}
@@ -73,7 +73,7 @@ const CreateDiscountModal = (props: CreateDiscountModalProps) => {
                         setDiscounts(Discount.get())
                         handleDismmiss()
                     }}
-                    disabled={discountAmount === DEFAULT_DISCOUNT_PERCENTAGE_AMOUNT || discountName == DEFAULT_DISCOUNT_NAME}
+                    disabled={discountAmount === DEFAULT_DISCOUNT_PERCENTAGE_AMOUNT || discountName === DEFAULT_DISCOUNT_NAME}
                 >
                     Create discount
                 </Button>

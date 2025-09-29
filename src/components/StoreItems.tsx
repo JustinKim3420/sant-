@@ -1,5 +1,5 @@
-import { Box, Button, Card, CardActions, CardContent, Toolbar, Typography } from "@mui/material"
-import { Dispatch, SetStateAction, useRef, useState } from "react"
+import { Box, Button, Card, CardActions, CardContent, Typography } from "@mui/material"
+import { Dispatch, SetStateAction } from "react"
 import { Cart, CartItemType } from "../clients/cart"
 import { Product } from "../clients/product"
 import { AddProductToCartCommand } from "../commands/cartCommands"
@@ -22,24 +22,29 @@ const StoreItems = (props: StoreItemsProps) => {
             }}
         >
             <Box>
+                {/* TODO: move to parent */}
                 <Button
+                    variant='outlined'
+                    sx={{
+                        marginRight: '0.5rem'
+                    }}
                     onClick={() => {
                         commandExecuter.undo()
-                        setCart(Cart.get())
+                        setCart(Cart.getAllItems())
                     }}
                 >
                     Undo action
                 </Button>
                 <Button
+                    variant='outlined'
                     onClick={() => {
                         commandExecuter.redo()
-                        setCart(Cart.get())
+                        setCart(Cart.getAllItems())
                     }}
                 >
                     Redo action
                 </Button>
             </Box>
-            <Typography>Total: {Cart.getTotal()}</Typography>
         </Box>
         <Box
             sx={{
@@ -69,7 +74,7 @@ const StoreItems = (props: StoreItemsProps) => {
                             <Button onClick={() => {
                                 const addCommand = new AddProductToCartCommand(product)
                                 commandExecuter.execute(addCommand)
-                                setCart(Cart.get())
+                                setCart(Cart.getAllItems())
                             }}>
                                 Add to cart
                             </Button>

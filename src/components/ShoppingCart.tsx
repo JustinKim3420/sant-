@@ -1,9 +1,11 @@
-import { Box, Button, Checkbox, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
-import { Dispatch, SetStateAction, useRef, useState } from "react"
+import { Badge, Box, Button, Checkbox, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material"
+import { Dispatch, SetStateAction, useState } from "react"
 import { Cart, CartItemType } from "../clients/cart"
-import { DiscountType } from "../clients/discount"
+import { Discount, DiscountType } from "../clients/discount"
+import { RemoveDiscountFromItemCommand } from "../commands/discountCommands"
 import { CommandExecuter } from "../commands/executer"
 import CreateDiscountModal from "./CreateDiscountModal"
+import PaymentModal from "./PaymentModal"
 
 type ShoppingCartProps = {
     cart: CartItemType[],
@@ -15,12 +17,27 @@ const ShoppingCart = (props: ShoppingCartProps) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([])
     const { cart, commandExecuter, setDiscounts } = props
 
-    return <>
-        {
-            selectedItems.length > 0
-                ? <CreateDiscountModal setDiscounts={setDiscounts} selectedIds={selectedItems} commandExecuter={commandExecuter} />
-                : <></>
-        }
+    return <Box
+        sx={{
+            marginTop: '1rem',
+            border: '0.1rem solid black',
+            borderRadius: '1rem',
+            padding: '1rem'
+        }}
+    >
+        <Box
+            sx={{
+                display: 'flex',
+                justifyContent: 'space-between'
+            }}
+        >
+            <Typography variant="h4">Shopping cart</Typography>
+            <CreateDiscountModal
+                setDiscounts={setDiscounts}
+                selectedIds={selectedItems}
+                commandExecuter={commandExecuter}
+            />
+        </Box>
         <TableContainer>
             <Table>
                 <TableHead>
@@ -28,6 +45,7 @@ const ShoppingCart = (props: ShoppingCartProps) => {
                         <TableCell />
                         <TableCell>Item Name</TableCell>
                         <TableCell align="right">Quantity</TableCell>
+                        <TableCell align="right">Applied Discounts</TableCell>
                         <TableCell align="right">Total</TableCell>
                     </TableRow>
                 </TableHead>
@@ -40,7 +58,7 @@ const ShoppingCart = (props: ShoppingCartProps) => {
                                     checked={selectedItems.includes(item.id)}
                                     onClick={() => {
                                         if (selectedItems.includes(item.id)) {
-                                            setSelectedItems(prev => prev.filter((id) => id != item.id))
+                                            setSelectedItems(prev => prev.filter((id) => id !== item.id))
                                         } else {
                                             setSelectedItems(prev => [...prev, item.id])
                                         }
@@ -51,13 +69,39 @@ const ShoppingCart = (props: ShoppingCartProps) => {
                                 {item.name}
                             </TableCell>
                             <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">{Math.floor(item.sellingPrice * item.quantity * 100) / 100}</TableCell>
+                            <TableCell align="right">{Discount.getDiscountsForProduct(item.id).map(discount => {
+                                return <Chip
+                                    key={discount.id}
+                                    label={`${discount.name} - ${discount.percentAmount}%`}
+                                    onDelete={() => {
+                                        const command = new RemoveDiscountFromItemCommand(discount.id, item.id)
+                                        commandExecuter.execute(command)
+                                        setDiscounts(Discount.get())
+                                    }}
+                                />
+                            })}</TableCell>
+                            <TableCell align="right">{Cart.getProductTotal(item.id)}</TableCell>
                         </TableRow>
                     ))}
+                    <TableRow>
+                        <TableCell>Sales Tax</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell align="right">{Cart.getSalesTax()}%</TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell>Total</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell align="right">{Cart.getCartTotal()}</TableCell>
+                    </TableRow>
                 </TableBody>
             </Table>
+            <PaymentModal />
         </TableContainer>
-    </>
+    </Box>
 }
 
 export default ShoppingCart
